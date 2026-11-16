@@ -1,0 +1,54 @@
+# Packaging of fast-wam. The `lerobot` package under src/ is a trimmed copy of Hugging Face LeRobot
+# (Apache-2.0, see LICENSE and README), keeping what Fast-WAM training needs.
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fast-wam"
+version = "0.1.0"
+description = "Fast-WAM (Wan2.2-5B video expert + action expert) with a tactile expert, fine-tuned on UniVTAC"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.12"
+dependencies = [
+    "torch>=2.7,<2.16.0",
+    "torchvision>=0.22.0,<0.30.0",
+    "numpy>=2.0.0,<2.3.0",
+    "opencv-python-headless>=4.9.0,<4.14.0",
+    "Pillow>=10.0.0,<14.0.0",
+    "einops>=0.8.0,<0.9.0",
+    "draccus>=0.11.6,<0.12.0",
+    "huggingface-hub>=1.31.0,<3.0.0",
+    "filelock>=4.2.1,<5.0.0",
+    "fsspec>=2023.5.0,<2027.0.0",
+    "requests>=2.32.0,<3.0.0",
+    "safetensors>=0.4.3,<1.0.0",
+    "packaging>=24.2,<27.0",
+    "termcolor>=2.4.0,<4.0.0",
+    "tqdm>=4.66.0,<5.0.0",
+    "setuptools>=71.0.0,<85.0.0",
+    # Wan2.2 DiT and VAE, UMT5 text encoder
+    "transformers>=5.22.0,<5.23.0",
+    "diffusers>=0.38.0,<0.40.0",
+    # LeRobot datasets
+    "datasets>=4.8.0,<6.0.0",
+    "pandas>=2.0.0,<3.0.0",
+    "pyarrow>=21.0.0,<30.0.0",
+    "av>=15.0.0,<16.0.0",
+    "torchcodec>=0.3.0,<0.18.0; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "jsonlines>=4.0.0,<5.0.0",
+    # Training
+    "accelerate>=1.14.0,<2.0.0",
+    "trackio[gpu]>=0.44.0,<1.0.0",
+]
+
+[project.scripts]
+lerobot-train = "lerobot.scripts.lerobot_train:main"
+
+[tool.setuptools.package-data]
+lerobot = ["configs/recipes/*.yaml"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
