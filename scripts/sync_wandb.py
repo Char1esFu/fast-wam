@@ -16,6 +16,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import time
 from pathlib import Path
 
@@ -65,7 +66,7 @@ def sync_once(args) -> None:
             entity=args.entity,
             project=args.wandb_project,
             id=wandb_run_id(name),
-            name=name,
+            name=re.sub(r"-[0-9a-f]{8}$", "", name),  # the run name without the id Trackio appends
             config=run["config"] or {},
             resume="allow",
             dir=args.state_dir,  # keeps the local wandb/ run files out of the working directory

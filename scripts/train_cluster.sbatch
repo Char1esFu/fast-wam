@@ -5,7 +5,8 @@
 # Needs scripts/install_cluster.sbatch first. Everything lives on the anvme workspace.
 #
 # MoT experts, one joint attention per layer:
-#   video: Wan2.2-5B over the head | wrist canvas (224 x 448). VIDEO=frozen: frozen, and the video is the
+#   video: Wan2.2-5B over a 224 x 448 canvas of the cameras of the UniVTAC benchmark task (head | wrist for
+#     insert_tube and lift_can, the head camera alone otherwise). VIDEO=frozen: frozen, and the video is the
 #     current frame (with the video frozen the future frames can not change anything, see the config's
 #     `train_video_future`). VIDEO=train: the expert trains on the current + future frames (Fast-WAM recipe,
 #     needs ACTION_HORIZON divisible by 8).
@@ -52,6 +53,12 @@ VIDEO=${VIDEO:-frozen}
 TACTILE=${TACTILE:-trainable}
 TACTILE_STRIDE=${TACTILE_STRIDE:-5}
 TACTILE_STEPS=${TACTILE_STEPS:-6}
+# Cameras fixed by the UniVTAC benchmark per task (the camera_names of the released ACT checkpoints:
+# train_config_all for insert_tube and lift_can, train_config otherwise). Not part of the run name.
+case $TASK_NAME in
+    insert_tube|lift_can) CAMERAS="observation.images.head, observation.images.wrist" ;;
+    *) CAMERAS=observation.images.head ;;
+esac
 GRAD_CKPT=${GRAD_CKPT:-false}
 STEPS=${STEPS:-30000}
 SAVE_FREQ=${SAVE_FREQ:-10000}
@@ -72,7 +79,18 @@ nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv
 echo "[fastwam] task=$TASK_NAME dataset=$DATASET_ROOT" \
     "repo=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo uncommitted)"
 
-RUN_TAG=${RUN_TAG:-${SETTINGS}_h${ACTION_HORIZON}_video-${VIDEO}_tac-${TACTILE}-s${TACTILE_STRIDE}x${TACTILE_STEPS}}
+# Run name (also the Slurm job name to use): <task>_tac-<none|frozen|trainable>. A setting that differs from
+# its default is appended (-s<tactile stride>x<steps>, _<task config>-<demos>, _h<horizon>, _video-train); the
+# full config is in the train_config.json of every checkpoint.
+if [ -z "${RUN_TAG:-}" ]; then
+    RUN_TAG=${TASK_NAME}_tac-$TACTILE
+    if [ "$TACTILE" != none ] && [ "$TACTILE_STRIDE-$TACTILE_STEPS" != 5-6 ]; then
+        RUN_TAG+=-s${TACTILE_STRIDE}x${TACTILE_STEPS}
+    fi
+    if [ "$TASK_CONFIG-$EXPERT_DATA_NUM" != clean-100 ]; then RUN_TAG+=_$TASK_CONFIG-$EXPERT_DATA_NUM; fi
+    if [ "$ACTION_HORIZON" != 50 ]; then RUN_TAG+=_h$ACTION_HORIZON; fi
+    if [ "$VIDEO" != frozen ]; then RUN_TAG+=_video-$VIDEO; fi
+fi
 OUTPUT_DIR=${OUTPUT_DIR:-$ROOT/outputs/fastwam_${RUN_TAG}}
 
 if [ "$WANDB_SYNC" = 1 ]; then
@@ -101,7 +119,7 @@ CFG=${TMPDIR:-/tmp}/fastwam_${RUN_TAG}.yml
     echo "  action_horizon: $ACTION_HORIZON"
     echo "  n_action_steps: $ACTION_HORIZON"
     echo "  image_size: [224, 448]"
-    echo "  camera_keys: [observation.images.head, observation.images.wrist]"
+    echo "  camera_keys: [$CAMERAS]"  # one camera: the head view fills the 224 x 448 canvas
     echo "  freeze_video_expert: $([ "$VIDEO" = frozen ] && echo true || echo false)"
     echo "  use_gradient_checkpointing: $GRAD_CKPT"
     echo "  text_encoder_device: cpu"  # UMT5-XXL off the GPU; prompts are cached per distinct task string

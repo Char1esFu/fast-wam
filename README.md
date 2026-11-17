@@ -12,7 +12,7 @@ One joint self-attention per layer over three experts:
 
 | Expert | Weights | Tokens |
 |---|---|---|
-| video | Wan2.2-TI2V-5B | head \| wrist canvas, 224 x 448, Wan2.2-VAE latents |
+| video | Wan2.2-TI2V-5B | benchmark cameras (head \| wrist for insert_tube, lift_can; head otherwise), 224 x 448, Wan2.2-VAE latents |
 | action | action expert of `lerobot/fastwam_base` (hidden 1024, 30 layers) | `action_horizon` actions, one per dataset frame |
 | tactile | same architecture as the action expert, started from its weights | UniVTAC ResNet18 latents of the two marker streams: current frame clean, `tactile_future_steps` future frames `tactile_future_stride` dataset frames apart noised |
 
@@ -60,7 +60,9 @@ sbatch scripts/train_cluster.sbatch put_bottle_in_shelf
 ```
 
 Environment variables: `VIDEO=frozen|train`, `TACTILE=none|frozen|trainable` (default trainable),
-`TACTILE_STRIDE`, `TACTILE_STEPS`, `ACTION_HORIZON`, `BATCH_SIZE`, `STEPS`, `SAVE_FREQ`, `GRAD_CKPT`. `RESUME=1`
+`TACTILE_STRIDE`, `TACTILE_STEPS`, `ACTION_HORIZON`, `BATCH_SIZE`, `STEPS`, `SAVE_FREQ`, `GRAD_CKPT`. The cameras
+follow the UniVTAC benchmark per task. Runs are named `fastwam_<task>_tac-<mode>`, plus the settings that differ
+from the defaults. `RESUME=1`
 continues a run from its last checkpoint (`--dependency=afterany:<job>`). Runs log to Trackio, mirrored to wandb
 by `scripts/sync_wandb.py`.
 
