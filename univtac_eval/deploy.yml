@@ -1,0 +1,25 @@
+# Basic experiment configuration (keep unchanged across policies)
+policy_name: fastwam
+seed: 0
+ckpt_setting: 50
+instruction_type: seen
+instuction_file: null
+
+# ----- Fast-WAM-specific deploy parameters -----
+# Checkpoint: {fastwam_ckpt_root}/{task}_{TRAIN_CONFIG} (lerobot pretrained_model dir), TRAIN_CONFIG e.g.
+# tac-trainable. Results go to eval_result/fastwam/{task}/deploy/{TRAIN_CONFIG}-replan{n}/.
+fastwam_ckpt_root: ~/proj/fast-wam/ckpt
+# Python of the venv with the fast-wam repo installed, which runs fastwam_server.py.
+fastwam_python: ~/proj/fast-wam/.venv/bin/python
+# Execute the first n actions of each 50-action chunk, then predict the next chunk (receding horizon; the
+# env var FASTWAM_REPLAN_EVERY overrides).
+fastwam_replan_every: 10
+# Keep the video expert's transformer blocks (10 GB) in pinned CPU memory and stream them to the GPU for the
+# per-chunk prefill (same weights and results; a 24 GB GPU cannot hold the 14 GB MoT next to the simulator).
+fastwam_offload_video: true
+# The UMT5 text encoder (runs once per episode).
+fastwam_text_encoder_device: cpu
+# null keeps the checkpoint config's sampling steps (10).
+fastwam_num_inference_steps: null
+# 0: start a local server subprocess on a free port.
+fastwam_port: 0
